@@ -3,21 +3,28 @@
 //  Klaxon
 //
 //  Created by Jordan Kay on 5/19/17.
-//  Copyright © 2017 Squareknot. All rights reserved.
+//  Copyright © 2017 Cultivr. All rights reserved.
 //
-
-import Foundation
 
 enum Strings: String {
     case cancelLabel
+    case errorLabel
     case okLabel
     
     var localized: String {
-        return NSLocalizedString(rawValue, comment: "")
+        let bundle = Bundle(for: BundleObject.self)
+        return NSLocalizedString(rawValue, bundle: bundle, comment: "")
     }
     
     func localized(_ args: CVarArg...) -> String {
-        let localized = NSLocalizedString(rawValue, comment: "")
         return String(format: localized, locale: Locale.current, arguments: args)
     }
 }
+
+public extension String {
+    static var defaultErrorName: String {
+        return Strings.errorLabel.localized
+    }
+}
+
+private class BundleObject {}
