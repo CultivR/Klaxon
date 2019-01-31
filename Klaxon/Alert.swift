@@ -14,8 +14,10 @@ public extension UIAlertAction {
         case retry
         case destructive
     }
-    
-    convenience init(title: String?, style: ActionStyle = .dismiss, handler: @escaping () -> Void = {}) {
+}
+
+private extension UIAlertAction {
+    convenience init(title: String?, style: ActionStyle = .dismiss, handler: @escaping () -> Void) {
         self.init(title: title, style: style.value, handler: { _ in handler() })
     }
 }
@@ -47,17 +49,24 @@ public extension UIViewController {
         show(alert)
     }
     
-    func showConfirmationAlert(withTitle title: String, message: String? = nil, confirmActionTitle: String? = nil, preferredStyle: UIAlertControllerStyle = .alert, handler: @escaping () -> Void) {
+    func showConfirmationAlert(withTitle title: String, message: String? = nil, confirmActionTitle: String? = nil, textFieldPlaceholder: String? = nil, preferredStyle: UIAlertControllerStyle = .alert, handler: @escaping ([String?]?) -> Void) {
         let confirmActionTitle = confirmActionTitle ?? Strings.okLabel.localized
         let confirmActionStyle: UIAlertAction.ActionStyle = (preferredStyle == .actionSheet) ? .destructive : .dismiss
         let cancelActionTitle = Strings.cancelLabel.localized
         let cancelActionStyle: UIAlertActionStyle = (preferredStyle == .actionSheet) ? .cancel : .default
         let alert = UIAlertController(title: title, message: message, preferredStyle: preferredStyle)
-        let confirmAction = UIAlertAction(title: confirmActionTitle, style: confirmActionStyle, handler: handler)
         let cancelAction = UIAlertAction(title: cancelActionTitle, style: cancelActionStyle)
+        let confirmAction = UIAlertAction(title: confirmActionTitle, style: confirmActionStyle) { [weak alert] in
+            handler(alert?.textFields?.map { $0.text })
+        }
+        
         let actions = (preferredStyle == .actionSheet) ? [confirmAction, cancelAction] : [cancelAction, confirmAction]
+        if let placeholder = textFieldPlaceholder {
+            alert.addTextField { $0.placeholder = placeholder }
+        }
         actions.forEach { alert.addAction($0) }
         alert.preferredAction = cancelAction
+        
         show(alert)
     }
 }
