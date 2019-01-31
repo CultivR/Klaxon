@@ -8,6 +8,30 @@
 
 import UIKit
 
+public extension UIAlertController {
+    struct Field {
+        let style: Style
+        let placeholderText: String?
+        
+        public init(style: Style, placeholderText: String? = nil) {
+            self.style = style
+            self.placeholderText = placeholderText
+        }
+    }
+    
+    enum Input {
+        case text(String?)
+        case date(Date?)
+    }
+}
+
+public extension UIAlertController.Field {
+    enum Style {
+        case text(UITextAutocapitalizationType)
+        case date
+    }
+}
+
 public extension UIAlertAction {
     enum ActionStyle {
         case dismiss
@@ -49,7 +73,7 @@ public extension UIViewController {
         show(alert)
     }
     
-    func showConfirmationAlert(withTitle title: String, message: String? = nil, confirmActionTitle: String? = nil, textFieldPlaceholder: String? = nil, preferredStyle: UIAlertControllerStyle = .alert, handler: @escaping ([String?]?) -> Void) {
+    func showConfirmationAlert(withTitle title: String, message: String? = nil, confirmActionTitle: String? = nil, fields: [UIAlertController.Field] = [], preferredStyle: UIAlertControllerStyle = .alert, handler: @escaping ([UIAlertController.Input]) -> Void) {
         let confirmActionTitle = confirmActionTitle ?? Strings.okLabel.localized
         let confirmActionStyle: UIAlertAction.ActionStyle = (preferredStyle == .actionSheet) ? .destructive : .dismiss
         let cancelActionTitle = Strings.cancelLabel.localized
@@ -57,12 +81,35 @@ public extension UIViewController {
         let alert = UIAlertController(title: title, message: message, preferredStyle: preferredStyle)
         let cancelAction = UIAlertAction(title: cancelActionTitle, style: cancelActionStyle)
         let confirmAction = UIAlertAction(title: confirmActionTitle, style: confirmActionStyle) { [weak alert] in
-            handler(alert?.textFields?.map { $0.text })
+            guard let alert = alert, fields.count > 0 else { return }
+            let textFields = alert.textFields!
+            let inputs = fields.enumerated().map { index, field -> UIAlertController.Input in
+                let textField = textFields[index]
+                switch field.style {
+                case .text:
+                    return .text(textField.text)
+                case .date:
+                    let datePicker = textField.inputView as! UIDatePicker
+                    return .date(datePicker.date)
+                }
+            }
+            handler(inputs)
         }
         
         let actions = (preferredStyle == .actionSheet) ? [confirmAction, cancelAction] : [cancelAction, confirmAction]
-        if let placeholder = textFieldPlaceholder {
-            alert.addTextField { $0.placeholder = placeholder }
+        for field in fields {
+            alert.addTextField { textField in
+                textField.placeholder = field.placeholderText
+                switch field.style {
+                case let .text(autocapitalizationType):
+                    textField.autocapitalizationType = autocapitalizationType
+                case .date:
+                    let datePicker = UIDatePicker()
+                    datePicker.minimumDate = Date()
+                    datePicker.datePickerMode = .date
+                    textField.inputView = datePicker
+                }
+            }
         }
         actions.forEach { alert.addAction($0) }
         alert.preferredAction = cancelAction
@@ -77,7 +124,8 @@ private extension UIViewController {
         alertWindow.rootViewController = AlertViewController(statusBarStyle: preferredStatusBarStyle)
         alertWindow.isHidden = false
         alertWindow.windowLevel = UIWindowLevelAlert + 1
-        alertWindow.rootViewController!.present(alert, animated: true, completion: nil)
+//        alertWindow.rootViewController!.present(alert, animated: true, completion: nil)
+        present(alert, animated: true, completion: nil)
     }
 }
 
