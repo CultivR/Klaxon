@@ -11,10 +11,12 @@ import UIKit
 public extension UIAlertController {
     struct Field {
         let style: Style
+        let text: String?
         let placeholderText: String?
         
-        public init(style: Style, placeholderText: String? = nil) {
+        public init(style: Style, text: String? = nil, placeholderText: String? = nil) {
             self.style = style
+            self.text = text
             self.placeholderText = placeholderText
         }
     }
@@ -90,7 +92,8 @@ public extension UIViewController {
                     return .text(textField.text)
                 case .date:
                     let datePicker = textField.inputView as! UIDatePicker
-                    return .date(datePicker.date)
+                    let date = (textField.text?.count ?? 0 > 0) ? datePicker.date : nil
+                    return .date(date)
                 }
             }
             handler(inputs)
@@ -99,6 +102,7 @@ public extension UIViewController {
         let actions = (preferredStyle == .actionSheet) ? [confirmAction, cancelAction] : [cancelAction, confirmAction]
         for field in fields {
             alert.addTextField { textField in
+                textField.text = field.text
                 textField.placeholder = field.placeholderText
                 switch field.style {
                 case let .text(autocapitalizationType):
@@ -154,7 +158,7 @@ private class AlertDatePicker: UIDatePicker {
         super.init(frame: .zero)
         minimumDate = Date()
         datePickerMode = .date
-//        formatter.dateStyle = .long
+        formatter.dateStyle = .long
         addTarget(self, action: #selector(valueChanged), for: .valueChanged)
     }
     
