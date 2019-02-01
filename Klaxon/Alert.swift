@@ -27,7 +27,7 @@ public extension UIAlertController {
 
 public extension UIAlertController.Field {
     enum Style {
-        case text(UITextAutocapitalizationType)
+        case text(autocapitalizationType: UITextAutocapitalizationType)
         case date
     }
 }
