@@ -104,9 +104,7 @@ public extension UIViewController {
                 case let .text(autocapitalizationType):
                     textField.autocapitalizationType = autocapitalizationType
                 case .date:
-                    let datePicker = UIDatePicker()
-                    datePicker.minimumDate = Date()
-                    datePicker.datePickerMode = .date
+                    let datePicker = AlertDatePicker(textField: textField)
                     textField.inputView = datePicker
                 }
             }
@@ -144,6 +142,28 @@ private class AlertViewController: UIViewController {
     // MARK: UIViewController
     override var preferredStatusBarStyle: UIStatusBarStyle {
         return statusBarStyle
+    }
+}
+
+private class AlertDatePicker: UIDatePicker {
+    private let textField: UITextField
+    private let formatter = DateFormatter()
+    
+    init(textField: UITextField) {
+        self.textField = textField
+        super.init(frame: .zero)
+        minimumDate = Date()
+        datePickerMode = .date
+//        formatter.dateStyle = .long
+        addTarget(self, action: #selector(valueChanged), for: .valueChanged)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError()
+    }
+    
+    @objc func valueChanged() {
+        textField.text = formatter.string(from: date)
     }
 }
 
