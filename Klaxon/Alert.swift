@@ -13,11 +13,13 @@ public extension UIAlertController {
         let style: Style
         let text: String?
         let placeholderText: String?
+        let isSecure: Bool
         
-        public init(style: Style, text: String? = nil, placeholderText: String? = nil) {
+        public init(style: Style, text: String? = nil, placeholderText: String? = nil, isSecure: Bool = false) {
             self.style = style
             self.text = text
             self.placeholderText = placeholderText
+            self.isSecure = isSecure
         }
     }
     
@@ -31,20 +33,6 @@ public extension UIAlertController.Field {
     enum Style {
         case text(autocapitalizationType: UITextAutocapitalizationType)
         case date
-    }
-}
-
-public extension UIAlertAction {
-    enum ActionStyle {
-        case dismiss
-        case retry
-        case destructive
-    }
-}
-
-private extension UIAlertAction {
-    convenience init(title: String?, style: ActionStyle = .dismiss, handler: @escaping () -> Void) {
-        self.init(title: title, style: style.value, handler: { _ in handler() })
     }
 }
 
@@ -62,27 +50,29 @@ public extension UIViewController {
         let message = error.description
         let actionTitle = Strings.okLabel.localized
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        let action = UIAlertAction(title: actionTitle, handler: handler)
+        let action = UIAlertAction(title: actionTitle, style: .default, handler: { _ in handler() })
         alert.addAction(action)
         show(alert)
     }
     
-    func showAlert(withTitle title: String, message: String? = nil, handler: @escaping () -> Void = {}) {
+    func showAlert(title: String, message: String? = nil, handler: @escaping () -> Void = {}) {
         let actionTitle = Strings.okLabel.localized
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        let action = UIAlertAction(title: actionTitle, handler: handler)
+        let action = UIAlertAction(title: actionTitle, style: .default, handler: { _ in handler() })
         alert.addAction(action)
         show(alert)
     }
     
-    func showConfirmationAlert(withTitle title: String, message: String? = nil, confirmActionTitle: String? = nil, fields: [UIAlertController.Field] = [], preferredStyle: UIAlertControllerStyle = .alert, handler: @escaping ([UIAlertController.Input]) -> Void) {
+    func showConfirmationAlert(title: String, message: String? = nil, confirmActionTitle: String? = nil, fields: [UIAlertController.Field] = [], preferredStyle: UIAlertController.Style = .alert, handler: @escaping ([UIAlertController.Input]) -> Void) {
         let confirmActionTitle = confirmActionTitle ?? Strings.okLabel.localized
-        let confirmActionStyle: UIAlertAction.ActionStyle = (preferredStyle == .actionSheet) ? .destructive : .dismiss
         let cancelActionTitle = Strings.cancelLabel.localized
-        let cancelActionStyle: UIAlertActionStyle = (preferredStyle == .actionSheet) ? .cancel : .default
+        showAlert(title: title, message: message, leftActionTitle: cancelActionTitle, rightActionTitle: confirmActionTitle, fields: fields, preferredStyle: preferredStyle, handler: handler)
+    }
+
+    func showAlert(title: String, message: String? = nil, leftActionTitle: String, rightActionTitle: String, fields: [UIAlertController.Field] = [], preferredStyle: UIAlertController.Style = .alert, preferredActionIndex: Int = 0, handler: @escaping ([UIAlertController.Input]) -> Void) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: preferredStyle)
-        let cancelAction = UIAlertAction(title: cancelActionTitle, style: cancelActionStyle)
-        let confirmAction = UIAlertAction(title: confirmActionTitle, style: confirmActionStyle) { [weak alert] in
+        let leftAction = UIAlertAction(title: leftActionTitle, style: .default)
+        let rightAction = UIAlertAction(title: rightActionTitle, style: .default) { [weak alert] _ in
             guard let alert = alert, fields.count > 0 else { return }
             let textFields = alert.textFields!
             let inputs = fields.enumerated().map { index, field -> UIAlertController.Input in
@@ -99,11 +89,13 @@ public extension UIViewController {
             handler(inputs)
         }
         
-        let actions = (preferredStyle == .actionSheet) ? [confirmAction, cancelAction] : [cancelAction, confirmAction]
+        let actions = (preferredStyle == .actionSheet) ? [rightAction, leftAction] : [leftAction, rightAction]
         for field in fields {
             alert.addTextField { textField in
                 textField.text = field.text
                 textField.placeholder = field.placeholderText
+                textField.isSecureTextEntry = field.isSecure
+                
                 switch field.style {
                 case let .text(autocapitalizationType):
                     textField.autocapitalizationType = autocapitalizationType
@@ -114,7 +106,7 @@ public extension UIViewController {
             }
         }
         actions.forEach { alert.addAction($0) }
-        alert.preferredAction = cancelAction
+        alert.preferredAction = actions[preferredActionIndex]
         
         show(alert)
     }
@@ -122,10 +114,10 @@ public extension UIViewController {
 
 private extension UIViewController {
     func show(_ alert: UIAlertController) {
-        let alertWindow = UIWindow(frame: UIScreen.main.bounds)
-        alertWindow.rootViewController = AlertViewController(statusBarStyle: preferredStatusBarStyle)
-        alertWindow.isHidden = false
-        alertWindow.windowLevel = UIWindowLevelAlert + 1
+//        let alertWindow = UIWindow(frame: UIScreen.main.bounds)
+//        alertWindow.rootViewController = AlertViewController(statusBarStyle: preferredStatusBarStyle)
+//        alertWindow.isHidden = false
+//        alertWindow.windowLevel = UIWindowLevelAlert + 1
 //        alertWindow.rootViewController!.present(alert, animated: true, completion: nil)
         present(alert, animated: true, completion: nil)
     }
@@ -168,18 +160,5 @@ private class AlertDatePicker: UIDatePicker {
     
     @objc func valueChanged() {
         textField.text = formatter.string(from: date)
-    }
-}
-
-private extension UIAlertAction.ActionStyle {
-    var value: UIAlertActionStyle {
-        switch self {
-        case .dismiss:
-            return .default
-        case .retry:
-            return .cancel
-        case .destructive:
-            return .destructive
-        }
     }
 }
